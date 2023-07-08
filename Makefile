@@ -21,7 +21,7 @@ else
 endif
 
 FLAGS := -Wall -Wextra -O -Wfloat-equal -MMD -Wundef -Wshadow -Wcast-align -Wconversion -Wunreachable-code -ftrapv -pedantic -Wpedantic -Wformat=2 -Wreturn-type -Wdouble-promotion -Wstrict-overflow=5 -Wconversion
-LDLIBS := -lm -lstdc++
+LDLIBS := -lm -lstdc++ -lquadmath
 
 all: FLAGS += -O3
 debug: FLAGS += -g -Og

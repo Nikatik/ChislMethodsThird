@@ -1,20 +1,20 @@
 #include <float.h>
+#include <quadmath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-double fabs (double x);
-void   Uf (double** U, double h, double t);
-void   Us (double** U, double h, double t);
-void   UUf (double** U, double h, double t);
-void   UUs (double** U, double h, double t);
+void Uf (__float128** U, __float128 h, __float128 t);
+void Us (__float128** U, __float128 h, __float128 t);
+void UUf (__float128** U, __float128 h, __float128 t);
+void UUs (__float128** U, __float128 h, __float128 t);
 
 int main (int argc, char* argv[])
 {
     clock_t timer;
     timer = clock();
 
-    double       t = 0.1, h = 0.1;
+    long double  td = 0.1L, hd = 0.1L;
     char         prt  = 0;
     unsigned int mode = 0;
     if (argc > 1) sscanf (argv[1], "%c", &prt);
@@ -22,37 +22,38 @@ int main (int argc, char* argv[])
     {
         sscanf (argv[2], "%u", &mode);
         mode = mode % 4;
-        if (argc > 3) sscanf (argv[3], "%lf", &t);
-        if (argc > 4) sscanf (argv[4], "%lf", &h);
+        if (argc > 3) sscanf (argv[3], "%Lf", &td);
+        if (argc > 4) sscanf (argv[4], "%Lf", &hd);
     }
-    t = fabs (t);
-    h = fabs (h);
+    __float128 t, h;
+    t = fabsq ((__float128) td);
+    h = fabsq ((__float128) hd);
 
-    unsigned int l = (unsigned int) (1. / t) + 1;
-    unsigned int k = (unsigned int) (2. / h) + 1;
-    double**     U;
+    unsigned int l = (unsigned int) (1.Q / t) + 1;
+    unsigned int k = (unsigned int) (2.Q / h) + 1;
+    __float128** U;
 
-    U = (double**) malloc (sizeof (double*) * (l + 1));
+    U = (__float128**) malloc (sizeof (__float128*) * (l + 1));
     for (unsigned int i = 0; i < l + 1; i++)
     {
-        U[i] = (double*) malloc (sizeof (double) * k);
-        for (unsigned int j = 0; j < k; j++) U[i][j] = (DBL_MAX - 1);
+        U[i] = (__float128*) malloc (sizeof (__float128) * k);
+        for (unsigned int j = 0; j < k; j++) U[i][j] = (FLT128_MAX - 1);
         U[i][0]     = 0;
         U[i][k - 1] = 1;
     }
     for (unsigned int j = 0; j < k; j++)
     {
-        if (j * h < 1. + h / 4)
+        if (j * h < 1.Q + h / 4.Q)
         {
             U[0][j] = 0;
             continue;
         }
-        if (j * h > 1.25 + h / 4)
+        if (j * h > 1.25Q + h / 4.Q)
         {
             U[0][j] = 1;
             continue;
         }
-        U[0][j] = 4. * (j * h - 1.);
+        U[0][j] = 4.Q * (j * h - 1.Q);
     }
     switch (mode)
     {
@@ -76,19 +77,22 @@ int main (int argc, char* argv[])
             return -2;
         }
         for (unsigned int j = 0; j < k; j++)
-            fprintf (outf, "%.17lf|%.17lf|%.17lf\n", (double) j * h - 1.,
-                     U[l - 1][j], U[l][j]);
+            fprintf (outf, "%.40Lf|%.40Lf|%.40Lf\n",
+                     (long double) (j * h - 1.Q), (long double) U[l - 1][j],
+                     (long double) U[l][j]);
+        fclose (outf);
     }
     else
     {
-        /*  printf ("t = %lf\n", (double) (l - 1) * t);
+        /*  printf ("t = %lf\n", (__float128) (l - 1) * t);
           for (unsigned int j = 0; j < k; j++)
-              printf ("%20.17lf  |%22.17lf  |%22.17lf\n", (double) j * h - 1.,
-                      U[l-1][j], U[l][j]);
+              printf ("%20.17lf  |%22.17lf  |%22.17lf\n", (__float128) j * h
+          - 1., U[l-1][j], U[l][j]);
       */
         for (unsigned int i = 0; i < l + 1; i++)
         {
-            for (unsigned int j = 0; j < k; j++) printf ("%8.5lf  ", U[i][j]);
+            for (unsigned int j = 0; j < k; j++)
+                printf ("%8.5Lf  ", (long double) U[i][j]);
             printf ("\n");
         }
     }
@@ -101,51 +105,52 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-double fabs (double x) { return x < 0 ? -x : x; }
+// __float128 fabs (__float128 x) { return x < 0 ? -x : x; }
 
-void Uf (double** U, double h, double t)
+void Uf (__float128** U, __float128 h, __float128 t)
 {
-    unsigned int l = (unsigned int) (1. / t) + 1;
-    unsigned int k = (unsigned int) (2. / h) + 1;
+    unsigned int l = (unsigned int) (1.Q / t) + 1;
+    unsigned int k = (unsigned int) (2.Q / h) + 1;
     unsigned int i, j = 1;
 
     for (j = 1; j < k - 1; j++)
     {
         U[1][j] =
-            U[0][j] + t * (U[0][j + 1] - U[0][j - 1]) / (4. * h) +
-            t * t * (U[0][j + 1] - 2 * U[0][j] + U[0][j - 1]) / (8. * h * h);
-        if (j * h < 0.5 + h / 4)
+            U[0][j] + t * (U[0][j + 1] - U[0][j - 1]) / (4.Q * h) +
+            t * t * (U[0][j + 1] - 2.Q * U[0][j] + U[0][j - 1]) / (8.Q * h * h);
+        if (j * h < 0.5Q + h / 4.Q)
         {
             U[l][j] = 0;
             continue;
         }
-        if (j * h > 0.75 + h / 4)
+        if (j * h > 0.75Q + h / 4.Q)
         {
             U[l][j] = 1;
             continue;
         }
-        U[l][j] = 4. * (j * h - 1.) + 2.;
+        U[l][j] = 4.Q * (j * h - 1.Q) + 2.Q;
     }
 
     for (i = 2; i < l; i++)
         for (j = 1; j < k - 1; j++)
-            U[i][j] = t * (U[i - 1][j + 1] - U[i - 1][j - 1]) / (2. * h) +
+            U[i][j] = t * (U[i - 1][j + 1] - U[i - 1][j - 1]) / (2.Q * h) +
                       U[i - 2][j];
 }
 
-void UUf (double** U, double h, double t)
+void UUf (__float128** U, __float128 h, __float128 t)
 {
-    unsigned int l = (unsigned int) (1. / t) + 1;
-    unsigned int k = (unsigned int) (2. / h) + 1;
+    unsigned int l = (unsigned int) (1.Q / t) + 1;
+    unsigned int k = (unsigned int) (2.Q / h) + 1;
     unsigned int i, j = 1;
+    __float128   dev = t / h;
 
     for (j = 1; j < k - 1; j++)
     {
-        U[1][j] = U[0][j] *
-                  (1. + t * (U[0][j + 1] - U[0][j - 1]) / (2. * h) -
-                   t * t * U[0][j] * (U[0][j + 1] - 2 * U[0][j] + U[0][j - 1]) /
-                       (2. * h * h));
-        if (j * h < 0.625 + h / 4)
+        U[1][j] =
+            U[0][j] * (1.Q + dev * (U[0][j + 1] - U[0][j - 1]) / 2.Q -
+                       powq (dev, 2) * U[0][j] *
+                           (U[0][j + 1] - 2.Q * U[0][j] + U[0][j - 1]) / 2.Q);
+        if (j * h < 0.625Q + h / 4.Q)
         {
             U[l][j] = 0;
             continue;
@@ -155,9 +160,8 @@ void UUf (double** U, double h, double t)
 
     for (i = 2; i < l; i++)
         for (j = 1; j < k - 1; j++)
-            U[i][j] = t *
-                          (U[i - 1][j + 1] * U[i - 1][j + 1] -
-                           U[i - 1][j - 1] * U[i - 1][j - 1]) /
-                          (2. * h) +
-                      U[i - 2][j];
+            U[i][j] =
+                dev * (powq (U[i - 1][j + 1], 2) - powq (U[i - 1][j - 1], 2)) /
+                    2.Q +
+                U[i - 2][j];
 }
