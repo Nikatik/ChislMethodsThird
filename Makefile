@@ -41,17 +41,20 @@ endif
 CFLAGS := -std=c2x
 CXXFLAGS := -std=c++2a
 
-all: main
-debug: main
-test: main
-suck: main
+all: main dir
+debug: main dir
+test: main dir
+suck: main dir
 
 main: CFLAGS += $(FLAGS)
 main: CXXFLAGS += $(FLAGS)
 main: $(CSOURCES:%.c=%.o) $(CPPSOURCES:%.cpp=%.o) 
 
+dir: 
+	@ls ./plots &> /dev/null || mkdir ./plots
+
 DEPS := $(shell find -name "*.d")
 -include $(DEPS)
 
 clean:
-	@rm -vf main *.o *.d
+	@rm -vf main *.o *.d trajectory.txt

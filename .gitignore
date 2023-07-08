@@ -46,6 +46,10 @@
 *.mod*
 *.cmd
 .tmp_versions/
+plots/
+main
+out.txt
+trajectory.txt
 modules.order
 Module.symvers
 Mkfile.old
