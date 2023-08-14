@@ -1,6 +1,7 @@
 #include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 double fabs (double x);
@@ -58,9 +59,7 @@ int main (int argc, char* argv[])
     {
         case (0): Uf (U, h, t); break;
         case (1): UUf (U, h, t); break;
-        case (2):
-            // Us (U, h, t);
-            break;
+        case (2): Us (U, h, t); break;
         case (3):
             // UUs (U, h, t);
             break;
@@ -78,6 +77,7 @@ int main (int argc, char* argv[])
         for (unsigned int j = 0; j < k; j++)
             fprintf (outf, "%.17lf|%.17lf|%.17lf\n", (double) j * h - 1.,
                      U[l - 1][j], U[l][j]);
+        fclose(outf);
     }
     else
     {
@@ -160,4 +160,42 @@ void UUf (double** U, double h, double t)
                            U[i - 1][j - 1] * U[i - 1][j - 1]) /
                           (2. * h) +
                       U[i - 2][j];
+}
+
+void Us (double** U, double h, double t)
+{
+    unsigned int l = (unsigned int) (1. / t) + 1;
+    unsigned int k = (unsigned int) (2. / h) + 1;
+    unsigned int i, j = 1;
+    double       mu = (2. * h) / t;
+    double*      Umoment;
+    Umoment = (double*) malloc (sizeof (double) * k);
+
+    for (j = 1; j < k - 1; j++)
+    {
+        if (j * h < 0.5 + h / 4)
+        {
+            U[l][j] = 0;
+            continue;
+        }
+        if (j * h > 0.75 + h / 4)
+        {
+            U[l][j] = 1;
+            continue;
+        }
+        U[l][j] = 4. * (j * h - 1.) + 2.;
+    }
+
+    for (i = 1; i < l; i++)
+    {
+        memcpy (Umoment, U[i - 1], k * sizeof (double));
+        Umoment[k - 2] += (1. / mu - 1) * Umoment[k - 1];
+        for (j = k - 2; j >= 1; j--)
+        {
+            Umoment[j - 1] += Umoment[j] * (1 - mu);
+            Umoment[j] = Umoment[j] * mu;
+        }
+        memcpy (U[i] + 1, Umoment + 2, (k - 2) * sizeof (double));
+    }
+    free (Umoment);
 }
